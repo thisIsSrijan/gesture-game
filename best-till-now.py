@@ -10,6 +10,11 @@ mpDraw = mp.solutions.drawing_utils
 
 model = load_model('mp_hand_gesture')
 
+def calculateDistance(point1,point2):
+    distance = np.sqrt((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2)
+    return distance
+
+
 with open('gesture.names', 'r') as f:
     classNames = f.read().split('\n')
 
@@ -46,7 +51,30 @@ while True:
             ring_tip = landmarks[16]
             pinky_tip = landmarks[20]
 
+            wrist_end = landmarks[0]
+            thumb_end = landmarks[2]
+            index_end = landmarks[5]
+            middle_end = landmarks[9]
+            ring_end = landmarks[13]
+            pinky_end = landmarks[17]
+
             # Check if thumb is pointing towards the right and other fingers are close to thumb (clenched fist)
+            palm_shown = (
+                thumb_tip[1] < wrist_end[1]
+                and index_tip[1] < wrist_end[1]
+                and middle_tip[1] < wrist_end[1]
+                and ring_tip[1] < wrist_end[1]
+                and pinky_tip[1] < wrist_end[1]
+            )
+
+            chench_fist = (
+                thumb_tip[1] < wrist_end[1]
+                and index_tip[1] < wrist_end[1]
+                and middle_tip[1] < wrist_end[1]
+                and ring_tip[1] < wrist_end[1]
+                and pinky_tip[1] < wrist_end[1]
+            )
+
             thumb_is_right = (
                 thumb_tip[0] > index_tip[0]
                 and thumb_tip[0] > middle_tip[0]
@@ -54,19 +82,65 @@ while True:
                 and thumb_tip[0] > pinky_tip[0]
             )
 
-            # Calculate the distance between thumb tip and index finger tip
-            distance = np.sqrt((thumb_tip[0] - index_tip[0])**2 + (thumb_tip[1] - index_tip[1])**2)
+
+            thumb_is_left = (
+                thumb_tip[0] < index_tip[0]
+                and thumb_tip[0] < middle_tip[0]
+                and thumb_tip[0] < ring_tip[0]
+                and thumb_tip[0] < pinky_tip[0]
+            )
+
+            # Calculate the distance between points
+            tip_to_thumb_distance = calculateDistance(thumb_tip, index_tip)
+            index_tip_to_end = calculateDistance(index_tip, index_end)
+            middle_tip_to_end = calculateDistance(middle_end, middle_end)
+            ring_tip_to_end = calculateDistance(ring_tip, ring_end)
+            pinky_tip_to_end = calculateDistance(pinky_tip, pinky_end)
+
+
+            wrist_to_middle = calculateDistance(middle_tip, wrist_end)
+
+
+            gesture_map = {
+                "left_thumb" : 0, "right_thumb" : 1, "palm" : 2, "fist" : 3
+            }
 
             # Apply additional filtering for improved precision
             if (
                 thumb_is_right
-                and distance > 45
-                # and thumb_tip[1] < index_tip[1]
-                # and thumb_tip[1] < middle_tip[1]
-                # and thumb_tip[1] < ring_tip[1]
-                # and thumb_tip[1] < pinky_tip[1]
+                and tip_to_thumb_distance > 40
+                and tip_to_thumb_distance < 90
+                
             ):
                 className = "Right Pointing Thumb with Clenched Fist"
+            
+            elif (
+                thumb_is_left
+                and tip_to_thumb_distance > 40
+                and tip_to_thumb_distance < 90
+                
+            ):
+                className = "Left Pointing Thumb with Clenched Fist"
+
+            elif (
+                chench_fist
+                and index_tip_to_end < 40
+                and middle_tip_to_end < 40
+                and ring_tip_to_end < 40
+                and pinky_tip_to_end < 40
+            ):
+                className = "Fist"
+
+            elif (
+                palm_shown
+                and wrist_to_middle > 60
+                # and index_tip_to_end > 20
+                # and middle_tip_to_end > 20
+                # and ring_tip_to_end > 20
+                # and pinky_tip_to_end > 20
+            ):
+                className = "Palm Shown"
+            
             else:
                 className = "Unknown"
 
