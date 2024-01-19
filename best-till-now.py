@@ -10,6 +10,8 @@ mpDraw = mp.solutions.drawing_utils
 
 model = load_model('mp_hand_gesture')
 
+
+
 def calculateDistance(point1,point2):
     distance = np.sqrt((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2)
     return distance
@@ -96,13 +98,14 @@ while True:
             middle_tip_to_end = calculateDistance(middle_end, middle_end)
             ring_tip_to_end = calculateDistance(ring_tip, ring_end)
             pinky_tip_to_end = calculateDistance(pinky_tip, pinky_end)
+            thumb_tip_to_end = calculateDistance(thumb_tip, thumb_end)
 
 
             wrist_to_middle = calculateDistance(middle_tip, wrist_end)
 
 
             gesture_map = {
-                "left_thumb" : 0, "right_thumb" : 1, "palm" : 2, "fist" : 3
+                "move_left" : False, "move_right" : False , "hold" : False, "attack" : False
             }
 
             # Apply additional filtering for improved precision
@@ -113,6 +116,8 @@ while True:
                 
             ):
                 className = "Right Pointing Thumb with Clenched Fist"
+                gesture_map = {key: False for key in gesture_map}
+                gesture_map["move_right"] = True
             
             elif (
                 thumb_is_left
@@ -121,15 +126,21 @@ while True:
                 
             ):
                 className = "Left Pointing Thumb with Clenched Fist"
+                gesture_map = {key: False for key in gesture_map}
+                gesture_map["move_left"] = True
 
             elif (
                 chench_fist
-                and index_tip_to_end < 40
-                and middle_tip_to_end < 40
-                and ring_tip_to_end < 40
-                and pinky_tip_to_end < 40
+                and index_tip_to_end < 70
+                and middle_tip_to_end < 70
+                and ring_tip_to_end < 70
+                and pinky_tip_to_end < 70
+                and thumb_tip_to_end < 70
+
             ):
                 className = "Fist"
+                gesture_map = {key: False for key in gesture_map}
+                gesture_map["attack"] = True
 
             elif (
                 palm_shown
@@ -140,6 +151,8 @@ while True:
                 # and pinky_tip_to_end > 20
             ):
                 className = "Palm Shown"
+                gesture_map = {key: False for key in gesture_map}
+                gesture_map["hold"] = True
             
             else:
                 className = "Unknown"
@@ -150,11 +163,41 @@ while True:
 
             cv2.putText(
                 frame,
-                f"{hand_side} Hand: {className}",
-                text_position,
+                f"{hand_side} Hand: attack: {gesture_map['attack']}",
+                (10,50),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.7,
-                (0, 0, 255),
+                (255, 255, 255),
+                1,
+                cv2.LINE_AA,
+            )
+            cv2.putText(
+                frame,
+                f"{hand_side} Hand: hold: {gesture_map['hold']}",
+                (10,80),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (255, 255, 255),
+                1,
+                cv2.LINE_AA,
+            )
+            cv2.putText(
+                frame,
+                f"{hand_side} Hand: move_left: {gesture_map['move_left']}",
+                (10,110),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (255, 255, 255),
+                1,
+                cv2.LINE_AA,
+            )
+            cv2.putText(
+                frame,
+                f"{hand_side} Hand: move_right: {gesture_map['move_right']}",
+                (10,140),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (255, 255, 255),
                 1,
                 cv2.LINE_AA,
             )
